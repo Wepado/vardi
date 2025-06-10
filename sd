@@ -1,0 +1,174 @@
+Auth.html
+HTML структура:
+Форма регистрации с полями username/password
+Форма входа с такими же полями
+Сообщения об ошибках под каждой формой
+JavaScript функции:
+rgister() - отправляет POST-запрос на /register с введенными данными
+login() - отправляет POST-запрос на /login, сохраняет JWT токен в localStorage и перенаправляет на index.html
+Использует шаблонные строки для URL API (но есть синтаксическая ошибка - отсутствуют обратные кавычки)
+Index.html
+Интерфейс:
+Таблица для отображения заказов
+Формы для создания/обновления заказов
+Блок статистики
+Кнопка выхода
+JavaScript логика:
+authorizedFetch - обертка над fetch с добавлением JWT токена в заголовки
+loadOrders() - загружает и отображает список заказов
+createOrder()/updateOrder() - CRUD операции с заказами
+loadStatistics() - загружает статистические данные
+При загрузке страницы автоматически подгружаются заказы и статистика
+Program.cs (Backend)
+Конфигурация:
+Установка JWT ключа для подписи токенов
+Настройка CORS политики (разрешает все запросы)
+Добавление аутентификации через JWT Bearer tokens
+Маршруты:
+/register - создает нового пользователя с хешированным паролем
+/login - проверяет учетные данные и выдает JWT токен
+/orders - CRUD операции с заказами (требуют аутентификации)
+/statistics - возвращает аналитику по заказам
+Сервисы:
+JwtService - генерирует JWT токены
+Repository - DbContext для работы с базой данных (SQLite)
+Модели:
+Order - сущность заказа с полями и бизнес-логикой (автоматическая установка EndDate при завершении)
+User - сущность пользователя
+DTO (Data Transfer Objects):
+RegisterDTO/LoginDTO - для аутентификации
+CreateOrderDTO/UpdateOrderDTO - для работы с заказами
+StatisticDTO - для передачи статистики
+Ключевые моменты безопасности:
+Пароли хранятся в виде хешей (BCrypt)
+Все маршруты (кроме /register и /login) требуют JWT токена
+Токеы имеют срок жизни (1 час)
+При неавторизованном доступе происходит редирект на страницу входа
+
+
+Создание базы данных для ASP.NET проекта: полное руководство
+Вот пошаговая инструкция по созданию базы данных для вашего ASP.NET проекта:
+
+1. Выбор технологии базы данных
+Сначала определитесь с типом БД:
+
+SQL Server (наиболее популярен для ASP.NET)
+
+SQLite (для небольших проектов)
+
+PostgreSQL (бесплатная альтернатива)
+
+MySQL (кроссплатформенное решение)
+
+Azure SQL (облачное решение от Microsoft)
+
+2. Установка необходимых инструментов
+Для работы с SQL Server:
+
+Установите SQL Server Express (бесплатная версия)
+
+Установите SQL Server Management Studio (SSMS) для управления БД
+
+Или используйте Azure Data Studio (альтернатива SSMS)
+
+3. Создание базы данных
+Вариант 1: Через SSMS
+Откройте SSMS
+
+Подключитесь к вашему SQL Server
+
+Правой кнопкой на "Databases" → "New Database"
+
+Укажите имя базы данных и настройки
+
+Вариант 2: Через код (Code First подход)
+csharp
+// В Package Manager Console:
+Install-Package Microsoft.EntityFrameworkCore
+Install-Package Microsoft.EntityFrameworkCore.SqlServer
+
+// Создайте класс контекста:
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    {
+    }
+
+    public DbSet<YourModel> YourModels { get; set; }
+}
+
+// Добавьте в Startup.cs/Program.cs:
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+4. Настройка подключения
+Добавьте строку подключения в appsettings.json:
+
+json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=YourDatabaseName;Trusted_Connection=True;"
+  }
+}
+5. Создание моделей
+Создайте классы моделей в папке Models:
+
+csharp
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+    public DateTime CreatedDate { get; set; }
+}
+6. Миграции (для Entity Framework Core)
+Установите инструменты EF Core:
+
+bash
+dotnet tool install --global dotnet-ef
+Создайте миграцию:
+
+bash
+dotnet ef migrations add InitialCreate
+Примените миграцию к БД:
+
+bash
+dotnet ef database update
+7. Работа с базой данных
+Пример использования в контроллере:
+
+csharp
+public class ProductsController : Controller
+{
+    private readonly ApplicationDbContext _context;
+
+    public ProductsController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public IActionResult Index()
+    {
+        var products = _context.Products.ToList();
+        return View(products);
+    }
+}
+8. Дополнительные настройки
+Регистрация сервисов: Убедитесь, что DbContext зарегистрирован в DI-контейнере
+Обработка ошибок: Добавьте обработку ошибок подключения к БД
+Логирование: Настройте логирование запросов к БД
+9. Развертывание
+Для публикации проекта:
+Для локального сервера: убедитесь, что БД существует на целевом сервере
+Для Azure: используйте Azure SQL Database и обновите строку подключения
+Советы по оптимизаци
+Используйте индексы для часто запрашиваемых полей
+Реализуйте пагинацию для больших наборов данных
+Рассмотрите возможность использования хранимых процедур для сложных операций
+Настройте резервное копирование БД
+Для более сложных сценариев можно рассмотреть:
+Репозиторий и Unit of Work паттерны
+Dapper для сложных SQL-запросов
+NoSQL решения, если ваши данные лучше подходят для них
+Хотите, чтобы я подробнее остановился на каком-то конкретном аспекте?
+
